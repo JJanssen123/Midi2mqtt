@@ -11,7 +11,7 @@ mqtt_listen_topic = 'midi/#'
 # mqtt server settings
 mqtt_server = 'test.mosquitto.org'
 mqtt_port = 1883     # no ssl!
-mqtt_username = 'test'   # leave both empty if not required
+mqtt_username = ''   # leave both empty if not required
 mqtt_password = ''
 
 # ========================+++++++++=============================

@@ -5,28 +5,11 @@
 # added receiving mqtt-messages and send as midi out
 # added handling of missing values
 
-# ======================== SETTINGS =============================
-
-# settings for sending from device to mqtt, leave empty if you only want to listen to mqtt:
-midi_in_device = 'UMC404HD 192k MIDI In 0'  
-mqtt_publish_topic = 'midi/jorg'
-
-# settings for listening on mqtt, leave empty if you only want to send from device to mqtt:
-midi_out_device = 'Midi2mqtt 3'
-mqtt_listen_topic = 'midi/*'
-
-# mqtt server settings
-mqtt_server = 'test.mosquitto.org'
-mqtt_port = 1883     # no ssl!
-mqtt_username = ''   # leave both empty if not required
-mqtt_password = ''
-
-# ========================+++++++++=============================
-
 import mido
 import paho.mqtt.client as mqtt
-import struct
+# import struct
 import json
+from settings import *
 
 print()
 print("Discovered MIDI IN devices:")
@@ -35,9 +18,7 @@ print()
 print("Discovered MIDI OUT devices:")
 print(mido.get_output_names())
 
-
-
-# Callback for when the client receives a CONNACK response from the server.
+# Callback when connected to mqtt server
 def on_connect(client, userdata, flags, reason_code, properties):
     print()
     print("Connected to mqtt server with result code " + str(reason_code))

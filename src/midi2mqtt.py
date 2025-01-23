@@ -24,21 +24,31 @@ def on_connect(client, userdata, flags, reason_code, properties):
     print("Connected to mqtt server with result code " + str(reason_code))
 
     if midi_in_device and midi_in_device != '' and mqtt_publish_topic and mqtt_publish_topic != '':
-        global input_port
-        print()
-        input_port = mido.open_input(midi_in_device)
-        print ("Listening for midi on device", midi_in_device)  
-        input_port.callback = publish_to_mqtt_topic
-        print ("Sending midi to mqtt topic", mqtt_publish_topic)
+        if midi_in_device in mido.get_input_names():
+            global input_port
+            print()
+            input_port = mido.open_input(midi_in_device)
+            print ("Listening for midi on device", midi_in_device)  
+            input_port.callback = publish_to_mqtt_topic
+            print ("Sending midi to mqtt topic", mqtt_publish_topic)
+        else:
+            print("Midi IN device in settings.py does not exist")
+    else:
+            print("No input device set in settings.py")
 
     if mqtt_listen_topic and mqtt_listen_topic != '' and midi_out_device and midi_out_device != '':
-        global output_port
-        print()
-        client.subscribe(mqtt_listen_topic)
-        client.on_message = on_message
-        print("Listening for midi on mqtt topic", mqtt_listen_topic)  
-        output_port = mido.open_output(midi_out_device, make_virtual_device)
-        print("Sending midi to device", midi_out_device)
+        if midi_out_device in mido.get_output_names():
+            global output_port
+            print()
+            client.subscribe(mqtt_listen_topic)
+            client.on_message = on_message
+            print("Listening for midi on mqtt topic", mqtt_listen_topic)  
+            output_port = mido.open_output(midi_out_device, make_virtual_device)
+            print("Sending midi to device", midi_out_device)
+        else:
+            print("Midi OUT device in settings.py does not exist")
+    else:
+        print("No output device set in settings.py")
 
 # Callback for messages on the mqtt-topic
 def on_message(client, userdata, msg):
@@ -52,19 +62,21 @@ def on_message(client, userdata, msg):
 
 # Callback for messages on the MIDI-IN device
 def publish_to_mqtt_topic(message):
+    # print(message)
     # output_port.send(message) # local echo
     kvps = ("event=" + str(message)).split(" ")    
-    event = kvps[0]
+    event = kvps[0]    
     del(kvps[0])
     dict = {k: int(v) for kvp in kvps for k, v in (kvp.split("="),)}	
     dict['event'] = event.split('=')[1]	    
-    if dict['event'] != 'clock':
+    if dict['event'] != 'clock' or send_clock_messages:
+        #print(message)
         json_str = json.dumps(dict)
         #print(json_str)
         client.publish(mqtt_publish_topic, payload=json_str)  
 
 # make mqtt connection
-if (midi_in_device and midi_in_device != '' and mqtt_publish_topic and mqtt_publish_topic != '') or (mqtt_listen_topic and mqtt_listen_topic != '' and midi_out_device and midi_out_device != ''):
+if (midi_in_device and midi_in_device != '' and midi_in_device in mido.get_input_names() and mqtt_publish_topic and mqtt_publish_topic != '') or (mqtt_listen_topic and mqtt_listen_topic != '' and midi_out_device and midi_out_device != '' and midi_out_device in mido.get_output_names()):
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     if mqtt_username and mqtt_password and mqtt_username != '' and mqtt_password != '':
         client.username_pw_set(mqtt_username,mqtt_password)
@@ -73,4 +85,4 @@ if (midi_in_device and midi_in_device != '' and mqtt_publish_topic and mqtt_publ
     client.loop_forever()
 else:
     print()
-    print ("No devices and mqtt-topics set in settings.py. Copy the name of the device from above.")
+    print ("No devices and mqtt-topics set in settings.py or device does not exist. Copy the name of the device from above.")
